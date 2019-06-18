@@ -92,10 +92,25 @@ class Vector3 {
         return new Vector3(-v.x, -v.y, -v.z);
     }
 
+    static slerp(v1, v2, t){
+        let dot = Vector3.dot(v1, v2);
+        if(dot > 0.9995){
+            let rs = Vector3.add(v1, Vector3.scale(Vector3.sub(v2, v1), t));
+            rs.normalize();
+            return rs;
+        }
+
+        if(dot < -1) dot = -1;
+        else if(dot > 1) dot = 1;
+
+        let theta = Math.acos(dot) * t;
+        let v3 = Vector3.sub(v2, Vector3.scale(v1, dot));
+        v3.normalize();
+        return Vector3.add(Vector3.scale(v1, Math.cos(theta)), Vector3.scale(v3, Math.sin(theta)));
+    }
+
     static linearInterpolate(v1, v2, t){
-        let va = Vector3.scale(v1, 1 - t);
-        let vb = Vector3.scale(v2, t);
-        return Vector3.add(va, vb);
+		return new Vector3(v1.x + (v2.x - v1.x) * t, v1.y + (v2.y - v1.y) * t, v1.z + (v2.z - v1.z) * t);
     }
 
     add(v){

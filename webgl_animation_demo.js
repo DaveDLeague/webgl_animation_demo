@@ -1,3 +1,11 @@
+class Bone{
+    constructor(os = new Vector3(), or = new Quaternion()){
+        this.offset = os;
+        this.orientaion = or;
+        this.children = [];
+    }
+};
+
 var canvas;
 var gl;
 
@@ -22,9 +30,8 @@ var frameInterval;
 
 var anim = true;
 
-var matS = [];
-var matE = [];
-
+var rootBone;
+var endBone; 
 
 window.onload = function(){
     window.addEventListener("resize", resizeCanvas);
@@ -45,31 +52,13 @@ window.onload = function(){
 
     prepareGL();
 
-    matS.push(new Matrix4());
-    let mm = Matrix4.buildModelMatrix4(new Vector3(0, 1, 0), new Vector3(1, 1, 1), new Quaternion());
-    matS.push(mm);
-    mm = Matrix4.buildModelMatrix4(new Vector3(0, 2, 0), new Vector3(1, 1, 1), new Quaternion());
-    matS.push(mm);
-    matE.push(Matrix4.fromArray([
-        0.5957, -0.8032, 0.0000, 0.0000,
-        0.8032,  0.5957, 0.0000, 0.0000,
-        0.0000,  0.0000, 1.0000, 0.0000,
-        0.0000,  0.0000, 0.0000, 1.0000
-    ]));
-    matE.push(Matrix4.fromArray([
-        -0.1435, -0.9896, 0.0000, 0.0000,
-        0.9896, -0.1435, 0.0000, 0.0000,
-        0.0000,  0.0000, 1.0000, 0.0000,
-        0.8032,  0.5957, 0.0000, 1.0000
-    ]));
-    matE.push(Matrix4.fromArray([
-        -0.6930, -0.7209, 0.0000, 0.0000,
-        0.7209, -0.6930, 0.0000, 0.0000,
-        0.0000,  0.0000, 1.0000, 0.0000,
-        1.7929,  0.4521, 0.0000, 1.0000
-   ]));
+    rootBone = new Bone();
+    rootBone.children.push(new Bone(new Vector3(0, 1, 0)));
+    rootBone.children[0].children.push(new Bone(new Vector3(0, 1, 0)));
 
-
+    endBone = new Bone(new Vector3(), Quaternion.rotationToQuaternion(new Vector3(0, 0, 1), -Math.PI / 2));
+    endBone.children.push(new Bone(new Vector3(0, 1, 0), Quaternion.rotationToQuaternion(new Vector3(0, 0, 1), -Math.PI / 2)));
+    endBone.children[0].children.push(new Bone(new Vector3(0, 1, 0)));
     frameInterval = setInterval(drawFrame, 1);
 }
 
@@ -130,10 +119,20 @@ function drawFrame(){
         if(t >= 1) t = 0;
     }
 
-    for(let i = 0; i < matS.length; i++){
-        let im = interpolateMatrices(matS[i], matE[i], t);
-        gl.uniformMatrix4fv(modelMatrixId, gl.FALSE, im.m);
-        gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+    renderSkeleton(new Matrix4(), rootBone, endBone, t);
+}
+
+function renderSkeleton(mat, start, end, t){
+    let lo = Vector3.linearInterpolate(start.offset, end.offset, t);
+    let ro = Quaternion.slerp(start.orientaion, end.orientaion, t);
+    let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
+    m2 = Matrix4.multiply(mat, m2);
+
+    gl.uniformMatrix4fv(modelMatrixId, gl.FALSE, m2.m);
+    gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+
+    for(let i = 0; i < start.children.length; i++){
+        renderSkeleton(m2, start.children[i], end.children[i], t);
     }
 }
 
@@ -144,7 +143,7 @@ function interpolateMatrices(m1, m2, t){
     let l2 = new Vector3(m2.m[12], m2.m[13], m2.m[14]);
 
     let qi = Quaternion.slerp(q1, q2, t);
-    let li = Vector3.linearInterpolate(l1, l2, t);
+    let li = Vector3.slerp(l1, l2, t);
     return Matrix4.buildModelMatrix4(li, new Vector3(1, 1, 1), qi);
 }
 
