@@ -8,5 +8,10 @@
             "type": "shell",
             "command": "\"C:/Program Files (x86)/Google/Chrome/Application/chrome\" -f ${workspaceFolder}/index.html",
         },
+        {
+            "label": "osx_run",
+            "type": "shell",
+            "command": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome -f ${workspaceFolder}/index.html",
+        },
     ]
 }

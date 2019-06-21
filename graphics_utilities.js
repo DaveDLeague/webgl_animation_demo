@@ -1132,3 +1132,6 @@ function generateBoneVerticesWithNormals(verts, inds){
         inds.push(i);
     }
 }
+
+const IDENTITY_MATRIX = new Matrix4();
+const UNIT_SCALE_VECTOR = new Vector3(1, 1, 1);

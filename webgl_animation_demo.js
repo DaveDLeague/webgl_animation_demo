@@ -1,8 +1,14 @@
 class Bone{
     constructor(os = new Vector3(), or = new Quaternion()){
         this.offset = os;
-        this.orientaion = or;
+        this.orientation = or;
         this.children = [];
+    }
+};
+
+class Animation{
+    constructor(){
+        this.poses = [];
     }
 };
 
@@ -30,8 +36,8 @@ var frameInterval;
 
 var anim = true;
 
-var rootBone;
-var endBone; 
+var animation;
+
 
 window.onload = function(){
     window.addEventListener("resize", resizeCanvas);
@@ -51,15 +57,6 @@ window.onload = function(){
     camera.updateView();
 
     prepareGL();
-
-    rootBone = new Bone();
-    rootBone.children.push(new Bone(new Vector3(0, 1, 0)));
-    rootBone.children[0].children.push(new Bone(new Vector3(0, 1, 0)));
-
-    endBone = new Bone(new Vector3(), Quaternion.rotationToQuaternion(new Vector3(0, 0, 1), -Math.PI / 2));
-    endBone.children.push(new Bone(new Vector3(0, 1, 0), Quaternion.rotationToQuaternion(new Vector3(0, 0, 1), -Math.PI / 2)));
-    endBone.children[0].children.push(new Bone(new Vector3(0, 1, 0)));
-    frameInterval = setInterval(drawFrame, 1);
 }
 
 function prepareGL(){
@@ -102,10 +99,15 @@ function prepareGL(){
     gl.enable(gl.DEPTH_TEST);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clear(gl.DEPTH_BUFFER_BIT);
-    gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+
+    animation = buildAnimation(boneAnimation);  
+    
+    frameInterval = setInterval(drawFrame, 1);
 }
 
 let t = 0;
+let cf = 0;
+let nf = 1;
 function drawFrame(){
     gl.uniformMatrix4fv(projectionViewId, gl.FALSE, camera.viewMatrix.m);
     gl.uniform3fv(lightPositionId, lightPosition.toArray());
@@ -116,15 +118,22 @@ function drawFrame(){
 
     if(anim){
         t += 0.001;
-        if(t >= 1) t = 0;
+        if(t >= 1){ 
+            t = 0;
+            cf++;
+            nf++;
+            if(cf >= animation.poses.length) cf = 0;
+            if(nf >= animation.poses.length) nf = 0;
+        }
+
     }
 
-    renderSkeleton(new Matrix4(), rootBone, endBone, t);
+    renderSkeleton(new Matrix4(), animation.poses[cf], animation.poses[nf], t);
 }
 
 function renderSkeleton(mat, start, end, t){
     let lo = Vector3.linearInterpolate(start.offset, end.offset, t);
-    let ro = Quaternion.slerp(start.orientaion, end.orientaion, t);
+    let ro = Quaternion.slerp(start.orientation, end.orientation, t);
     let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
     m2 = Matrix4.multiply(mat, m2);
 
@@ -145,6 +154,25 @@ function interpolateMatrices(m1, m2, t){
     let qi = Quaternion.slerp(q1, q2, t);
     let li = Vector3.slerp(l1, l2, t);
     return Matrix4.buildModelMatrix4(li, new Vector3(1, 1, 1), qi);
+}
+
+function parseBone(bn){
+    let loc = new Vector3(bn[0][0], bn[0][1], bn[0][2]);
+    let rot = new Quaternion(bn[1][0], bn[1][1], bn[1][2], bn[1][3]);
+    let b = new Bone(loc, rot);
+    
+    for(let i = 0; i < bn[2].length; i++){
+        b.children.push(parseBone(bn[2][i]));
+    }
+    return b;
+}
+
+function buildAnimation(anim){
+    let fAnim = new Animation();
+    for(let i = 0; i < anim.length; i++){
+        fAnim.poses.push(parseBone(anim[i]));
+    }
+    return fAnim;
 }
 
 function resizeCanvas(){
