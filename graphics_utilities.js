@@ -230,9 +230,9 @@ class Quaternion {
     }
 
     static inverse(q){
-        let l = q.length();
-        if(l != 0){
-            return new Quaternion(-q.x / l, -q.y / l, -q.z / l, q.w / l)
+        let den = q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z;
+        if(den != 0){
+            return new Quaternion(-q.x / den, -q.y / den, -q.z / den, q.w / den)
         }else{
             return new Quaternion(0, 0, 0, 0);
         }
@@ -240,6 +240,7 @@ class Quaternion {
 
     static slerp(q1, q2, t){
         let dot = Quaternion.dot(q1, q2);
+
         if(dot > 0.9995){
             let rs = Quaternion.add(q1, Quaternion.scale(Quaternion.sub(q2, q1), t));
             rs.normalize();
@@ -248,12 +249,20 @@ class Quaternion {
 
         if(dot < -1) dot = -1;
         else if(dot > 1) dot = 1;
+        
+        if(dot < 0){
+            q1.rotate(new Vector3(1, 1, 1), 2 * Math.PI);
+        }
 
         let theta0 = Math.acos(dot);
         let theta = theta0 * t;
+
         let q3 = Quaternion.sub(q2, Quaternion.scale(q1, dot));
         q3.normalize();
-        return Quaternion.add(Quaternion.scale(q1, Math.cos(theta)), Quaternion.scale(q3, Math.sin(theta)));
+
+        let qf = Quaternion.add(Quaternion.scale(q1, Math.cos(theta)), Quaternion.scale(q3, Math.sin(theta)));
+
+        return qf;         
     }
 
     static dot(q1, q2){

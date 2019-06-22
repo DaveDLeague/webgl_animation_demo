@@ -101,6 +101,7 @@ function prepareGL(){
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
     animation = buildAnimation(boneAnimation);  
+    console.log(animation.poses.length);
     
     frameInterval = setInterval(drawFrame, 1);
 }
@@ -127,7 +128,6 @@ function drawFrame(){
         }
 
     }
-
     renderSkeleton(new Matrix4(), animation.poses[cf], animation.poses[nf], t);
 }
 
