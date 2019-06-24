@@ -4,7 +4,7 @@ from os import system, name
 scene = bpy.context.scene
 bones = bpy.data.objects['Armature'].pose.bones
 action = bpy.data.actions[0]
-finStr = "var boneAnimation = ["
+finStr = "var boneAnimation = [["
 keyframes = []
 
 def clear(): 
@@ -55,11 +55,24 @@ for fcv in action.fcurves:
         
 
 keyframes = set(keyframes)
+keyframes = list(keyframes)
 
 for k in keyframes:
+    scene.frame_set(k)
     finStr += parsePoses(None, bones[0])
 
-finStr += "];"
+frameDurations = []
+for i in range(len(keyframes) - 1):
+    cf = keyframes[i];
+    nf = keyframes[i + 1]
+    frameDurations.append(nf - cf)
+
+finStr += "],["
+
+for i in frameDurations:
+    finStr += str(int(i)) + ","    
+
+finStr += "]];"
 print(finStr)
 
 
