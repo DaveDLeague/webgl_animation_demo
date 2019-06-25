@@ -157,8 +157,8 @@ function updateAnimation(animation){
             animation.currentFrame++;
             animation.nextFrame++;
             if(animation.currentFrame >= animation.poses.length - 1) {
-                animation.currentFrame = 0;
-                animation.nextFrame = 1;
+                animation.currentFrame = 1;
+                animation.nextFrame = 2;
             }
 
             animation.currentPoseDuration = animation.frameDurations[animation.currentFrame] / animation.fps;
