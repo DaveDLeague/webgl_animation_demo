@@ -63,7 +63,7 @@ for k in keyframes:
 
 frameDurations = []
 for i in range(len(keyframes) - 1):
-    cf = keyframes[i];
+    cf = keyframes[i]
     nf = keyframes[i + 1]
     frameDurations.append(nf - cf)
 

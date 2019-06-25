@@ -64,7 +64,7 @@ window.onload = function(){
 
     camera = new Camera();
     camera.setPerspectiveProjection(70.0, canvas.width / canvas.height, 0.001, 1000.0);
-    camera.position = new Vector3(1, 1, 5);
+    camera.position = new Vector3(1, 5, 35);
     camera.updateView();
 
     prepareGL();
@@ -111,7 +111,7 @@ function prepareGL(){
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
-    animation = buildAnimation(boneAnimation);  
+    animation = buildAnimation(boneAnimation, 24);  
     
     startTime = new Date().getTime();
     frameInterval = setInterval(drawFrame, 1);
@@ -126,20 +126,7 @@ function drawFrame(){
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
     if(anim){
-        animation.currentPoseTime += deltaTime;
-        if(animation.currentPoseTime >= animation.currentPoseDuration){ 
-            animation.currentPoseTime -= animation.currentPoseDuration;
-            animation.currentFrame++;
-            animation.nextFrame++;
-            if(animation.currentFrame >= animation.poses.length - 1) {
-                animation.currentFrame = 0;
-                animation.nextFrame = 1;
-            }
-
-            animation.currentPoseDuration = animation.frameDurations[animation.currentFrame] / animation.fps;
-        }
-        animation.divTime = animation.currentPoseTime / animation.currentPoseDuration;
-
+        updateAnimation(animation);
     }
     renderSkeleton(new Matrix4(), animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
 
@@ -161,6 +148,22 @@ function renderSkeleton(mat, start, end, t){
     for(let i = 0; i < start.children.length; i++){
         renderSkeleton(m2, start.children[i], end.children[i], t);
     }
+}
+
+function updateAnimation(animation){
+    animation.currentPoseTime += deltaTime;
+        if(animation.currentPoseTime >= animation.currentPoseDuration){ 
+            animation.currentPoseTime -= animation.currentPoseDuration;
+            animation.currentFrame++;
+            animation.nextFrame++;
+            if(animation.currentFrame >= animation.poses.length - 1) {
+                animation.currentFrame = 0;
+                animation.nextFrame = 1;
+            }
+
+            animation.currentPoseDuration = animation.frameDurations[animation.currentFrame] / animation.fps;
+        }
+    animation.divTime = animation.currentPoseTime / animation.currentPoseDuration;
 }
 
 function interpolateMatrices(m1, m2, t){
@@ -186,7 +189,7 @@ function parseBone(bn){
     return b;
 }
 
-function buildAnimation(anim){
+function buildAnimation(anim, fps = 24){
     let fAnim = new Animation();
     for(let i = 0; i < anim[0].length; i++){
         fAnim.poses.push(parseBone(anim[0][i]));
@@ -194,6 +197,7 @@ function buildAnimation(anim){
     for(let i = 0; i < anim[1].length; i++){
         fAnim.frameDurations.push(anim[1][i]);
     }
+    fAnim.fps = fps;
     fAnim.currentPoseDuration = fAnim.frameDurations[0] / fAnim.fps;
     return fAnim;
 }
