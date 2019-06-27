@@ -1,17 +1,5 @@
 import bpy
-
 from os import system, name
-
-scene = bpy.data.scenes[0]
-cyl = bpy.data.objects['Cylinder']
-verts = cyl.data.vertices
-polys = cyl.data.polygons
-
-vertices = []
-bones = []
-weights = []
-vData = []
-iData = []
 
 def clear(): 
     if name == 'nt': 
@@ -19,61 +7,87 @@ def clear():
     else: 
         system('clear') 
         
-clear()
-
-scene.frame_set(0)
-
-gctr = 0
-for v in verts:
-    gctr = 0
-    vertices.append(v.co)
-    inds = []
-    wts = []
+def exportMeshPosNormIndexData(obj):
+    verts = obj.data.vertices
+    polys = obj.data.polygons
+    vData = []
+    iData = []
+    indexTracker = 0
     
-    if len(v.groups) == 1:
-        inds.append(v.groups[0].group)
-        inds.append(0)
-        inds.append(0)
-        wts.append(round(v.groups[0].weight, 4))
-        wts.append(0)
-        wts.append(0)
-    elif len(v.groups) == 2:
-        inds.append(v.groups[0].group)
-        inds.append(v.groups[1].group)
-        inds.append(0)
-        wts.append(round(v.groups[0].weight, 4))
-        wts.append(round(v.groups[1].weight, 4))
-        wts.append(0)
-    elif len(v.groups) == 3:
-        inds.append(v.groups[0].group)
-        inds.append(v.groups[1].group)
-        inds.append(v.groups[2].group)
-        wts.append(round(v.groups[0].weight, 4))
-        wts.append(round(v.groups[1].weight, 4))
-        wts.append(round(v.groups[2].weight, 4))
-    
-    bones.append(inds)
-    weights.append(wts)
-
-indCtr = 0
-for p in polys:
-    if len(p.vertices) == 32:
+    for p in polys:
         for v in p.vertices:
-            vData.append(round(vertices[v].x, 4))
-            vData.append(round(vertices[v].y, 4))
-            vData.append(round(vertices[v].z, 4))
-        i = 0
-        while i < 30:
-            iData.append(i)
-            iData.append(i + 1)
-            iData.append(i + 2)
-            i += 1
+            vData.append(round(verts[v].co.x, 4))
+            vData.append(round(verts[v].co.y, 4))
+            vData.append(round(verts[v].co.z, 4))
+            vData.append(round(p.normal.x, 4))
+            vData.append(round(p.normal.y, 4))
+            vData.append(round(p.normal.z, 4))
+        iData.append(indexTracker)
+        iData.append(indexTracker + 1)
+        iData.append(indexTracker + 2)
+        vct = len(p.vertices)
+        for i in range(2, vct - 1):
+            iData.append(indexTracker + i)
+            iData.append(indexTracker + i + 1)
+            iData.append(indexTracker)
+        indexTracker += vct
+    return [vData, iData]
 
-finStr = "modelVertexData = ["
-finStr += str(vData) + ","
-finStr += str(iData)
-finStr += "];"
-print(finStr)
-file = open("C:/Users/Dave/Desktop/model_data.js", "w")
+def exportBoneAnimationData(pose, scene, keyframes):
+    def parsePose(parent, bone):
+        loc = []
+        rot = []
+        chi = []
+        if parent is not None:
+            mat = parent.matrix.inverted() @ bone.matrix
+            loc.append(round(mat[0][3] + bone.location.x, 4))
+            loc.append(round(mat[1][3] + bone.location.y, 4))
+            loc.append(round(mat[2][3] + bone.location.z, 4))
+            q = mat.to_quaternion()
+            rot.append(round(q.x, 4))
+            rot.append(round(q.y, 4))
+            rot.append(round(q.z, 4))
+            rot.append(round(q.w, 4))
+        else:
+            loc.append(round(bone.matrix[0][3], 4))
+            loc.append(round(bone.matrix[1][3], 4))
+            loc.append(round(bone.matrix[2][3], 4))
+            q = bone.matrix.to_quaternion()
+            rot.append(round(q.x, 4))
+            rot.append(round(q.y, 4))
+            rot.append(round(q.z, 4))
+            rot.append(round(q.w, 4))
+        if len(bone.children) > 0:
+            for b in bone.children:
+                chi.append(parsePose(bone, b))
+        return [loc, rot, chi]
+    animation = []
+    for k in keyframes:
+        scene.frame_set(k)
+        animation.append(parsePose(None, pose.bones[0]))
+    frameDurations = []
+    for i in range(len(keyframes) - 1):
+        cf = keyframes[i]
+        nf = keyframes[i + 1]
+        frameDurations.append(nf - cf)
+    return [animation, frameDurations]
+        
+clear()
+scene = bpy.data.scenes['Scene']
+scene.frame_set(0)
+modelData = exportMeshPosNormIndexData(bpy.data.objects['Cylinder'])
+
+keyframes = []
+for fcv in bpy.data.actions['ArmatureAction'].fcurves:
+    for k in fcv.keyframe_points:
+        keyframes.append(k.co.x)
+keyframes = list(set(keyframes))
+keyframes.sort()
+
+animData = exportBoneAnimationData(bpy.data.objects['Armature'].pose, scene, keyframes)
+
+finStr = "var modelVertexData = " + str(modelData) + ";\n"
+finStr += "var boneAnimation = " + str(animData) + ";"
+file = open('/Users/dave/Desktop/model_data.js', 'w')
 file.write(finStr)
 file.close()
