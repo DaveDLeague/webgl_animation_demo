@@ -34,8 +34,11 @@ var mIbo;
 
 var mPositionId;
 var mNormalId;
+var mWeightId;
+var mBoneId;
 var mProjectionViewId;
 var mModelMatrixId;
+var mBoneMatricesId;
 var mLightPositionId;
 
 var positionId;
@@ -52,7 +55,7 @@ var indexCount;
 
 var frameInterval;
 
-var anim = true;
+var anim = false;
 
 var animation;
 
@@ -126,17 +129,24 @@ function prepareGL(){
 
     mPositionId = gl.getAttribLocation(mShader, "position");
     mNormalId = gl.getAttribLocation(mShader, "normal");
+    mWeightId = gl.getAttribLocation(mShader, "weights");
+    mBoneId = gl.getAttribLocation(mShader, "bones");
     mProjectionViewId = gl.getUniformLocation(mShader, "projectionView");
     mModelMatrixId = gl.getUniformLocation(mShader, "modelMatrix");
+    mBoneMatricesId = gl.getUniformLocation(mShader, "boneMatrices");
     mLightPositionId = gl.getUniformLocation(mShader, "lightPosition");
 
     mVbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, mVbo);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(modelVertexData[0]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(mPositionId);
-    gl.vertexAttribPointer(mPositionId, 3, gl.FLOAT, gl.FALSE, 24, 0);
     gl.enableVertexAttribArray(mNormalId);
-    gl.vertexAttribPointer(mNormalId, 3, gl.FLOAT, gl.FALSE, 24, 12);
+    gl.enableVertexAttribArray(mWeightId);
+    gl.enableVertexAttribArray(mBoneId);
+    gl.vertexAttribPointer(mPositionId, 3, gl.FLOAT, gl.FALSE, 48, 0);
+    gl.vertexAttribPointer(mNormalId, 3, gl.FLOAT, gl.FALSE, 48, 12);
+    gl.vertexAttribPointer(mWeightId, 3, gl.FLOAT, gl.FALSE, 48, 24);
+    gl.vertexAttribIPointer(mBoneId, 3, gl.INT, gl.FALSE, 48, 36);
     mIbo = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mIbo);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(modelVertexData[1]), gl.STATIC_DRAW);
@@ -151,8 +161,10 @@ function prepareGL(){
     frameInterval = setInterval(drawFrame, 1);
 }
 
+let modelMat = Matrix4.buildModelMatrix4(new Vector3(), UNIT_SCALE_VECTOR, Quaternion.rotationToQuaternion(new Vector3(1, 0, 0), -Math.PI / 2));
+
 function drawFrame(){
-    camera.updateView(0.01);
+    camera.updateView(deltaTime);
 
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -163,21 +175,41 @@ function drawFrame(){
         gl.bindVertexArray(vao);
         gl.uniformMatrix4fv(projectionViewId, gl.FALSE, camera.viewMatrix.m);
         gl.uniform3fv(lightPositionId, lightPosition.toArray());
-        renderSkeleton(new Matrix4(), animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
+        renderSkeleton(modelMat, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
     }else{
         gl.useProgram(mShader);
         gl.bindVertexArray(mVao);
+
+        let mats = [];
+        buildAnimationMatrixArray(mats, modelMat, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
+        let matz = [];
+        for(let i = 0; i < mats.length; i++){
+            for(let j = 0; j < 16; j++){
+                matz.push(mats[i][j]);
+            }
+        }
+        gl.uniformMatrix4fv(mBoneMatricesId, gl.FALSE, new Float32Array(matz));
+
         gl.uniformMatrix4fv(mProjectionViewId, gl.FALSE, camera.viewMatrix.m);
         gl.uniform3fv(mLightPositionId, lightPosition.toArray());
-        gl.uniformMatrix4fv(mModelMatrixId, gl.FALSE, new Matrix4().m);
+        gl.uniformMatrix4fv(mModelMatrixId, gl.FALSE, modelMat.m);
         gl.drawElements(gl.TRIANGLES, modelVertexData[1].length, gl.UNSIGNED_SHORT, 0);
     }
-    
 
     endTime = new Date().getTime();
     deltaTime = (endTime - startTime) / 1000.0;
     startTime = endTime;
+}
 
+function buildAnimationMatrixArray(aniMat, mat, start, end, t){
+    let lo = Vector3.linearInterpolate(start.offset, end.offset, t);
+    let ro = Quaternion.slerp(start.orientation, end.orientation, t);
+    let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
+    m2 = Matrix4.multiply(mat, m2);
+    for(let i = 0; i < start.children.length; i++){
+        buildAnimationMatrixArray(aniMat, m2, start.children[i], end.children[i], t);
+    }
+    aniMat.push(m2.m);
 }
 
 function renderSkeleton(mat, start, end, t){
