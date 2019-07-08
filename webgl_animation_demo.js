@@ -55,7 +55,7 @@ var indexCount;
 
 var frameInterval;
 
-var anim = false;
+var anim = 2;
 
 var animation;
 
@@ -146,7 +146,7 @@ function prepareGL(){
     gl.vertexAttribPointer(mPositionId, 3, gl.FLOAT, gl.FALSE, 48, 0);
     gl.vertexAttribPointer(mNormalId, 3, gl.FLOAT, gl.FALSE, 48, 12);
     gl.vertexAttribPointer(mWeightId, 3, gl.FLOAT, gl.FALSE, 48, 24);
-    gl.vertexAttribIPointer(mBoneId, 3, gl.INT, gl.FALSE, 48, 36);
+    gl.vertexAttribPointer(mBoneId, 3, gl.FLOAT, gl.FALSE, 48, 36);
     mIbo = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mIbo);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(modelVertexData[1]), gl.STATIC_DRAW);
@@ -170,13 +170,14 @@ function drawFrame(){
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
     updateAnimation(animation);
-    if(anim){
+    if(anim == 0 || anim == 2){
         gl.useProgram(shader);
         gl.bindVertexArray(vao);
         gl.uniformMatrix4fv(projectionViewId, gl.FALSE, camera.viewMatrix.m);
         gl.uniform3fv(lightPositionId, lightPosition.toArray());
         renderSkeleton(modelMat, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
-    }else{
+    }
+    if(anim == 1 || anim == 2){
         gl.useProgram(mShader);
         gl.bindVertexArray(mVao);
 
@@ -188,7 +189,7 @@ function drawFrame(){
                 matz.push(mats[i][j]);
             }
         }
-        gl.uniformMatrix4fv(mBoneMatricesId, gl.FALSE, new Float32Array(matz));
+        gl.uniformMatrix4fv(mBoneMatricesId, gl.TRUE, new Float32Array(matz));
 
         gl.uniformMatrix4fv(mProjectionViewId, gl.FALSE, camera.viewMatrix.m);
         gl.uniform3fv(mLightPositionId, lightPosition.toArray());
@@ -206,10 +207,10 @@ function buildAnimationMatrixArray(aniMat, mat, start, end, t){
     let ro = Quaternion.slerp(start.orientation, end.orientation, t);
     let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
     m2 = Matrix4.multiply(mat, m2);
+    aniMat.push(m2.m);
     for(let i = 0; i < start.children.length; i++){
         buildAnimationMatrixArray(aniMat, m2, start.children[i], end.children[i], t);
     }
-    aniMat.push(m2.m);
 }
 
 function renderSkeleton(mat, start, end, t){
@@ -388,7 +389,8 @@ function keyDown(event){
             break;
         }
         case KEY_SPACE:{
-            anim = !anim;
+            anim++;
+            if(anim > 2) anim = 0;
             break;
         }
     }

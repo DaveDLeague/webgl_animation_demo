@@ -1,7 +1,7 @@
 <html>
     <meta charset='utf-8'/>
     <canvas id='canvasID'></canvas>
-    <script src='model_data.js'></script>
+    <script src='tentacle_model_data.js'></script>
     <script src='utilities.js'></script>
     <script src='graphics_utilities.js'></script>
     <script src='webgl_animation_demo.js'></script>
@@ -37,17 +37,17 @@
         in vec3 position;
         in vec3 normal;
         in vec3 weights;
-        in ivec3 bones;
+        in vec3 bones;
         uniform mat4 projectionView;
         uniform mat4 modelMatrix;
         uniform mat4 boneMatrices[32];
         out vec3 fragPos;
         out vec3 fragNorm;
         void main(){
-            vec4 np = vec4(position, 1.0);
-            vec4 nv = (boneMatrices[bones.x] * np) * weights.x;
-            nv = (boneMatrices[bones.y] * np) * weights.y + nv;
-            nv = (boneMatrices[bones.z] * np) * weights.z + nv;
+            vec4 np = modelMatrix * vec4(position, 1.0);
+            vec4 nv = (boneMatrices[int(bones.x)] * np) * weights.x;
+            nv += (boneMatrices[int(bones.y)] * np) * weights.y;
+            nv += (boneMatrices[int(bones.z)] * np) * weights.z;
             fragPos = vec3(nv);
             fragNorm = vec3(modelMatrix * vec4(normal, 0.0));
             gl_Position = projectionView * vec4(fragPos, 1.0);
