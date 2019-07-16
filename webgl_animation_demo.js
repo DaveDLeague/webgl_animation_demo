@@ -56,7 +56,7 @@ var indexCount;
 
 var frameInterval;
 
-var anim = 2;
+var anim = 1;
 
 var animation;
 var shouldAnimate = true;
