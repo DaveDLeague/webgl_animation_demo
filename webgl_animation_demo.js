@@ -9,6 +9,7 @@ class Bone{
 class Animation{
     constructor(){
         this.poses = [];
+        this.invBT = [];
         this.frameDurations = [];
         this.divTime = 0;
         this.currentFrame = 0;
@@ -58,6 +59,7 @@ var frameInterval;
 var anim = 2;
 
 var animation;
+var shouldAnimate = true;
 
 var startTime = 0;
 var endTime = 0;
@@ -169,7 +171,10 @@ function drawFrame(){
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
-    updateAnimation(animation);
+    if(shouldAnimate){
+        updateAnimation(animation);
+    }
+
     if(anim == 0 || anim == 2){
         gl.useProgram(shader);
         gl.bindVertexArray(vao);
@@ -182,7 +187,7 @@ function drawFrame(){
         gl.bindVertexArray(mVao);
 
         let mats = [];
-        buildAnimationMatrixArray(mats, modelMat, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
+        buildAnimationMatrixArray(mats, modelMat, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime, 0);
         let matz = [];
         for(let i = 0; i < mats.length; i++){
             for(let j = 0; j < 16; j++){
@@ -202,14 +207,16 @@ function drawFrame(){
     startTime = endTime;
 }
 
-function buildAnimationMatrixArray(aniMat, mat, start, end, t){
+function buildAnimationMatrixArray(aniMat, mat, start, end, t, ctr){
     let lo = Vector3.linearInterpolate(start.offset, end.offset, t);
     let ro = Quaternion.slerp(start.orientation, end.orientation, t);
     let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
-    m2 = Matrix4.multiply(mat, m2);
+    let im = animation.invBT[ctr];
+   
+    m2 = Matrix4.multiply(m2, im);
     aniMat.push(m2.m);
     for(let i = 0; i < start.children.length; i++){
-        buildAnimationMatrixArray(aniMat, m2, start.children[i], end.children[i], t);
+        buildAnimationMatrixArray(aniMat, m2, start.children[i], end.children[i], t, ctr + 1);
     }
 }
 
@@ -272,7 +279,14 @@ function buildAnimation(anim, fps = 24){
         fAnim.poses.push(parseBone(anim[0][i]));
     }
     for(let i = 0; i < anim[1].length; i++){
-        fAnim.frameDurations.push(anim[1][i]);
+        let m = new Matrix4();
+        for(let j = 0; j < 16; j++){
+            m.m[j] = anim[1][i][j];
+        }
+        fAnim.invBT.push(m);
+    }
+    for(let i = 0; i < anim[2].length; i++){
+        fAnim.frameDurations.push(anim[2][i]);
     }
     fAnim.fps = fps;
     fAnim.currentPoseDuration = fAnim.frameDurations[0] / fAnim.fps;
@@ -391,6 +405,10 @@ function keyDown(event){
         case KEY_SPACE:{
             anim++;
             if(anim > 2) anim = 0;
+            break;
+        }
+        case KEY_P:{
+           shouldAnimate = !shouldAnimate;
             break;
         }
     }

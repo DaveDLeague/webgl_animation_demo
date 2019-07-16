@@ -1,7 +1,7 @@
 <html>
     <meta charset='utf-8'/>
     <canvas id='canvasID'></canvas>
-    <script src='tentacle_model_data.js'></script>
+    <script src='test_model_data.js'></script>
     <script src='utilities.js'></script>
     <script src='graphics_utilities.js'></script>
     <script src='webgl_animation_demo.js'></script>
@@ -44,7 +44,7 @@
         out vec3 fragPos;
         out vec3 fragNorm;
         void main(){
-            vec4 np = modelMatrix * vec4(position, 1.0);
+            vec4 np = vec4(position, 1.0);
             vec4 nv = (boneMatrices[int(bones.x)] * np) * weights.x;
             nv += (boneMatrices[int(bones.y)] * np) * weights.y;
             nv += (boneMatrices[int(bones.z)] * np) * weights.z;
