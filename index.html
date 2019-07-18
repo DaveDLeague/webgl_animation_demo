@@ -45,11 +45,15 @@
         out vec3 fragNorm;
         void main(){
             vec4 np = vec4(position, 1.0);
+            vec4 nf = vec4(normal, 0.0);
             vec4 nv = (boneMatrices[int(bones.x)] * np) * weights.x;
             nv += (boneMatrices[int(bones.y)] * np) * weights.y;
             nv += (boneMatrices[int(bones.z)] * np) * weights.z;
+            vec4 nn = (boneMatrices[int(bones.x)] * nf) * weights.x;
+            nn += (boneMatrices[int(bones.y)] * nf) * weights.y;
+            nn += (boneMatrices[int(bones.z)] * nf) * weights.z;
             fragPos = vec3(nv);
-            fragNorm = vec3(modelMatrix * vec4(normal, 0.0));
+            fragNorm = vec3(nn);
             gl_Position = projectionView * vec4(fragPos, 1.0);
         }
         </script>

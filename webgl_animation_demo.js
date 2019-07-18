@@ -56,7 +56,7 @@ var indexCount;
 
 var frameInterval;
 
-var anim = 2;
+var anim = 1;
 
 var animation;
 var shouldAnimate = true;
@@ -158,6 +158,7 @@ function prepareGL(){
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
     animation = buildAnimation(boneAnimation, 24);  
+    console.log(boneAnimation[0]);
     
     startTime = new Date().getTime();
     frameInterval = setInterval(drawFrame, 1);
@@ -187,7 +188,8 @@ function drawFrame(){
         gl.bindVertexArray(mVao);
 
         let mats = [];
-        buildAnimationMatrixArray(mats, modelMat, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime, 0);
+        buildAnimationMatrixArray(mats, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime, 0);
+
         let matz = [];
         for(let i = 0; i < mats.length; i++){
             for(let j = 0; j < 16; j++){
@@ -207,16 +209,17 @@ function drawFrame(){
     startTime = endTime;
 }
 
-function buildAnimationMatrixArray(aniMat, mat, start, end, t, ctr){
+function buildAnimationMatrixArray(aniMat, start, end, t, ctr){
     let lo = Vector3.linearInterpolate(start.offset, end.offset, t);
     let ro = Quaternion.slerp(start.orientation, end.orientation, t);
     let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
     let im = animation.invBT[ctr];
-   
+    if(ctr == 2) console.log("im" + im);
     m2 = Matrix4.multiply(m2, im);
+    
     aniMat.push(m2.m);
     for(let i = 0; i < start.children.length; i++){
-        buildAnimationMatrixArray(aniMat, m2, start.children[i], end.children[i], t, ctr + 1);
+        buildAnimationMatrixArray(aniMat, start.children[i], end.children[i], t, ++ctr);
     }
 }
 
