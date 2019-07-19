@@ -69,23 +69,34 @@ def exportMeshPosNormIndexData(obj):
     return [vData, iData]
 
 def exportBoneAnimationData(pose, scene, keyframes):
-    def parsePose(bone):
+    def parsePose(parent, bone):
         loc = []
         rot = []
         chi = []
-        loc.append(round(bone.matrix[0][3], 4))
-        loc.append(round(bone.matrix[1][3], 4))
-        loc.append(round(bone.matrix[2][3], 4))
-        q = bone.matrix.to_quaternion()
-        rot.append(round(q.x, 4))
-        rot.append(round(q.y, 4))
-        rot.append(round(q.z, 4))
-        rot.append(round(q.w, 4))
+        if parent is not None:
+            mat = parent.matrix.inverted() @ bone.matrix;
+            loc.append(round(mat[0][3], 4))
+            loc.append(round(mat[1][3], 4))
+            loc.append(round(mat[2][3], 4))
+            q = mat.to_quaternion()
+            rot.append(round(q.x, 4))
+            rot.append(round(q.y, 4))
+            rot.append(round(q.z, 4))
+            rot.append(round(q.w, 4))
+        else:
+            loc.append(round(bone.matrix[0][3], 4))
+            loc.append(round(bone.matrix[1][3], 4))
+            loc.append(round(bone.matrix[2][3], 4))
+            q = bone.matrix.to_quaternion()
+            rot.append(round(q.x, 4))
+            rot.append(round(q.y, 4))
+            rot.append(round(q.z, 4))
+            rot.append(round(q.w, 4))
             
             
         if len(bone.children) > 0:
             for b in bone.children:
-                chi.append(parsePose(b))
+                chi.append(parsePose(bone, b))
         return [loc, rot, chi]
     
     def parseInvBT(arr, bone):
@@ -101,7 +112,7 @@ def exportBoneAnimationData(pose, scene, keyframes):
     animation = []
     for k in keyframes:
         scene.frame_set(k)
-        animation.append(parsePose(pose.bones[0]))
+        animation.append(parsePose(None, pose.bones[0]))
     
     invBT = []
     scene.frame_set(0)
@@ -117,7 +128,7 @@ def exportBoneAnimationData(pose, scene, keyframes):
 clear()
 scene = bpy.data.scenes['Scene']
 scene.frame_set(0)
-modelData = exportMeshPosNormIndexData(bpy.data.objects['Plane'])
+modelData = exportMeshPosNormIndexData(bpy.data.objects['Cylinder'])
 
 keyframes = []
 for fcv in bpy.data.actions['ArmatureAction'].fcurves:

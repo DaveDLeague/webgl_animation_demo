@@ -183,7 +183,7 @@ function drawFrame(){
         gl.bindVertexArray(vao);
         gl.uniformMatrix4fv(projectionViewId, gl.FALSE, camera.viewMatrix.m);
         gl.uniform3fv(lightPositionId, lightPosition.toArray());
-        renderSkeleton(animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
+        renderSkeleton(new Matrix4(), animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
     }
     if(anim == 1 || anim == 2){
         gl.useProgram(mShader);
@@ -191,7 +191,7 @@ function drawFrame(){
 
         let mats = [];
         matIndCtr = 0;
-        buildAnimationMatrixArray(mats, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
+        buildAnimationMatrixArray(new Matrix4(), mats, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
 
         let matz = [];
         for(let i = 0; i < mats.length; i++){
@@ -212,34 +212,31 @@ function drawFrame(){
     startTime = endTime;
 }
 
-function buildAnimationMatrixArray(aniMat, start, end, t){
+function buildAnimationMatrixArray(parent, aniMat, start, end, t){
     let lo = Vector3.linearInterpolate(start.offset, end.offset, t);
     let ro = Quaternion.slerp(start.orientation, end.orientation, t);
     let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
-    let im = animation.invBT[matIndCtr++];
-
-    m2 = Matrix4.multiply(m2, im);
-    m2.m[12] += lo.x;
-    m2.m[13] += lo.y;
-    m2.m[14] += lo.z;
+    m2 = Matrix4.multiply(parent, m2);
+    let m3 = Matrix4.multiply(m2, animation.invBT[matIndCtr++]);
     
-    aniMat.push(m2.m);
+
+    aniMat.push(m3.m);
     for(let i = 0; i < start.children.length; i++){
-        buildAnimationMatrixArray(aniMat, start.children[i], end.children[i], t);
+        buildAnimationMatrixArray(m2, aniMat, start.children[i], end.children[i], t);
     }
 }
 
-function renderSkeleton(start, end, t){
+function renderSkeleton(parent, start, end, t){
     let lo = Vector3.linearInterpolate(start.offset, end.offset, t);
     let ro = Quaternion.slerp(start.orientation, end.orientation, t);
     let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
-    //m2 = Matrix4.multiply(mat, m2);
+    m2 = Matrix4.multiply(parent, m2);
 
     gl.uniformMatrix4fv(modelMatrixId, gl.FALSE, m2.m);
     gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 
     for(let i = 0; i < start.children.length; i++){
-        renderSkeleton(start.children[i], end.children[i], t);
+        renderSkeleton(m2, start.children[i], end.children[i], t);
     }
 }
 
