@@ -81,6 +81,7 @@ window.onload = function(){
     lightPosition = new Vector3(30, 60, 50);
 
     camera = new Camera();
+    camera.moveSpeed = 5;
     camera.setPerspectiveProjection(70.0, canvas.width / canvas.height, 0.001, 1000.0);
     camera.position = new Vector3(-1, 3, 15);
     camera.updateView();
@@ -241,7 +242,7 @@ function renderSkeleton(parent, start, end, t){
 }
 
 function updateAnimation(animation){
-    animation.currentPoseTime += deltaTime;
+    animation.currentPoseTime += deltaTime / 2; //TEMPORARY!
         if(animation.currentPoseTime >= animation.currentPoseDuration){ 
             animation.currentPoseTime -= animation.currentPoseDuration;
             animation.currentFrame++;
