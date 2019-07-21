@@ -65,6 +65,8 @@ var startTime = 0;
 var endTime = 0;
 var deltaTime = 0;
 
+var matIndCtr = 0;
+
 
 window.onload = function(){
     window.addEventListener("resize", resizeCanvas);
@@ -158,6 +160,7 @@ function prepareGL(){
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
     animation = buildAnimation(boneAnimation, 24);  
+    console.log(boneAnimation[0]);
     
     startTime = new Date().getTime();
     frameInterval = setInterval(drawFrame, 1);
@@ -180,14 +183,16 @@ function drawFrame(){
         gl.bindVertexArray(vao);
         gl.uniformMatrix4fv(projectionViewId, gl.FALSE, camera.viewMatrix.m);
         gl.uniform3fv(lightPositionId, lightPosition.toArray());
-        renderSkeleton(modelMat, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
+        renderSkeleton(new Matrix4(), animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
     }
     if(anim == 1 || anim == 2){
         gl.useProgram(mShader);
         gl.bindVertexArray(mVao);
 
         let mats = [];
-        buildAnimationMatrixArray(mats, modelMat, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime, 0);
+        matIndCtr = 0;
+        buildAnimationMatrixArray(new Matrix4(), mats, animation.poses[animation.currentFrame], animation.poses[animation.nextFrame], animation.divTime);
+
         let matz = [];
         for(let i = 0; i < mats.length; i++){
             for(let j = 0; j < 16; j++){
@@ -207,24 +212,25 @@ function drawFrame(){
     startTime = endTime;
 }
 
-function buildAnimationMatrixArray(aniMat, mat, start, end, t, ctr){
+function buildAnimationMatrixArray(parent, aniMat, start, end, t){
     let lo = Vector3.linearInterpolate(start.offset, end.offset, t);
     let ro = Quaternion.slerp(start.orientation, end.orientation, t);
     let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
-    let im = animation.invBT[ctr];
-   
-    m2 = Matrix4.multiply(m2, im);
-    aniMat.push(m2.m);
+    m2 = Matrix4.multiply(parent, m2);
+    let m3 = Matrix4.multiply(m2, animation.invBT[matIndCtr++]);
+    
+
+    aniMat.push(m3.m);
     for(let i = 0; i < start.children.length; i++){
-        buildAnimationMatrixArray(aniMat, m2, start.children[i], end.children[i], t, ctr + 1);
+        buildAnimationMatrixArray(m2, aniMat, start.children[i], end.children[i], t);
     }
 }
 
-function renderSkeleton(mat, start, end, t){
+function renderSkeleton(parent, start, end, t){
     let lo = Vector3.linearInterpolate(start.offset, end.offset, t);
     let ro = Quaternion.slerp(start.orientation, end.orientation, t);
     let m2 = Matrix4.buildModelMatrix4(lo, new Vector3(1, 1, 1), ro);
-    m2 = Matrix4.multiply(mat, m2);
+    m2 = Matrix4.multiply(parent, m2);
 
     gl.uniformMatrix4fv(modelMatrixId, gl.FALSE, m2.m);
     gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);

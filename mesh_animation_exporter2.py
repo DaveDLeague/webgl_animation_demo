@@ -74,12 +74,11 @@ def exportBoneAnimationData(pose, scene, keyframes):
         rot = []
         chi = []
         if parent is not None:
-            mat = parent.matrix.inverted() @ bone.matrix
-            loc.append(round(bone.matrix[0][3], 4))
-            loc.append(round(bone.matrix[1][3], 4))
-            loc.append(round(bone.matrix[2][3], 4))
-            q = parent.matrix.to_quaternion() @ mat.to_quaternion()
-            q = bone.matrix.to_quaternion()
+            mat = parent.matrix.inverted() @ bone.matrix;
+            loc.append(round(mat[0][3], 4))
+            loc.append(round(mat[1][3], 4))
+            loc.append(round(mat[2][3], 4))
+            q = mat.to_quaternion()
             rot.append(round(q.x, 4))
             rot.append(round(q.y, 4))
             rot.append(round(q.z, 4))
@@ -93,6 +92,7 @@ def exportBoneAnimationData(pose, scene, keyframes):
             rot.append(round(q.y, 4))
             rot.append(round(q.z, 4))
             rot.append(round(q.w, 4))
+            
             
         if len(bone.children) > 0:
             for b in bone.children:
@@ -128,7 +128,7 @@ def exportBoneAnimationData(pose, scene, keyframes):
 clear()
 scene = bpy.data.scenes['Scene']
 scene.frame_set(0)
-modelData = exportMeshPosNormIndexData(bpy.data.objects['Cube'])
+modelData = exportMeshPosNormIndexData(bpy.data.objects['Cylinder'])
 
 keyframes = []
 for fcv in bpy.data.actions['ArmatureAction'].fcurves:
