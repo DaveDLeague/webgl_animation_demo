@@ -242,14 +242,14 @@ function renderSkeleton(parent, start, end, t){
 }
 
 function updateAnimation(animation){
-    animation.currentPoseTime += deltaTime / 2; //TEMPORARY!
+    animation.currentPoseTime += deltaTime;
         if(animation.currentPoseTime >= animation.currentPoseDuration){ 
             animation.currentPoseTime -= animation.currentPoseDuration;
             animation.currentFrame++;
             animation.nextFrame++;
             if(animation.currentFrame >= animation.poses.length - 1) {
-                animation.currentFrame = 0;
-                animation.nextFrame = 1;
+                animation.currentFrame = 1;
+                animation.nextFrame = 2;
             }
 
             animation.currentPoseDuration = animation.frameDurations[animation.currentFrame] / animation.fps;
