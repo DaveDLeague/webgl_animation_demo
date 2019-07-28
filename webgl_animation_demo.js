@@ -81,6 +81,7 @@ window.onload = function(){
     lightPosition = new Vector3(30, 60, 50);
 
     camera = new Camera();
+    camera.moveSpeed = 5;
     camera.setPerspectiveProjection(70.0, canvas.width / canvas.height, 0.001, 1000.0);
     camera.position = new Vector3(-1, 3, 15);
     camera.updateView();
@@ -247,8 +248,8 @@ function updateAnimation(animation){
             animation.currentFrame++;
             animation.nextFrame++;
             if(animation.currentFrame >= animation.poses.length - 1) {
-                animation.currentFrame = 0;
-                animation.nextFrame = 1;
+                animation.currentFrame = 1;
+                animation.nextFrame = 2;
             }
 
             animation.currentPoseDuration = animation.frameDurations[animation.currentFrame] / animation.fps;
