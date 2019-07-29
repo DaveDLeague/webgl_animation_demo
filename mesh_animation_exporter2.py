@@ -19,9 +19,9 @@ def exportMeshPosNormIndexData(obj):
             vData.append(round(verts[v].co.x, 4))
             vData.append(round(verts[v].co.y, 4))
             vData.append(round(verts[v].co.z, 4))
-            vData.append(round(p.normal.x, 4))
-            vData.append(round(p.normal.y, 4))
-            vData.append(round(p.normal.z, 4))
+            vData.append(round(verts[v].normal.x, 4))
+            vData.append(round(verts[v].normal.y, 4))
+            vData.append(round(verts[v].normal.z, 4))
             if len(verts[v].groups) == 0:
                 vData.append(0)
                 vData.append(0)
