@@ -13,6 +13,7 @@ def clear():
     else: 
         system('clear') 
 
+
 def parsePoses(parent, bone):
     output = "["
     loc = []
